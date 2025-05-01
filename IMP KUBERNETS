@@ -394,7 +394,12 @@ Q) What is EmptyDir in kubernets?
 A) In sidecar concept we have two containers in side the pod. pod characterstics are multiple containers inside the pod share same 
     network and storage. one container is serving for the application and another container shifting the logs to ELK. 
 
-    EmptyDir: emptyDir is used for sidecar pattern, we mount volume to the Sidecar and main container useing EmptyDir. 
+    EmptyDir: emptyDir is used for sidecar pattern, we mount volume to the Sidecar and main container useing EmptyDir.as the name says this emptyDir volume is intially empty. All the containers in pod can read and write the same files in the emptyDir volume. when you create the emptyDir it will create the volume inside the node and it will give access to pod.
+     then sidecar get access to storage, so sidecar project have filebeat. filebeat is the public image for the for elastic search, we put filebeat in sidecar, this filebeat access the logs and ship. there is some configaration for the filebeat.
+
+    i/p and 0/p --> input is for the prod logs to success, o/p is nothing but where to shift the logs.
+
+    we have to inform filebeat, we can take filebeat images from the internet but we needs to give this configaration where to send the logs.
 
 Q) Pods are aphermal so the pod may terminate do we have logs avilable?
 A) we dont have logs if the pods are temparary. we will shift the logs to elastic search, but who will ship?
