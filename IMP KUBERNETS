@@ -1,0 +1,360 @@
+https://infotechys.com/install-a-kubernetes-cluster-on-rhel-9/ == kubernets cluster installation process. take static-ip for nodes.
+
+IMP:
+if the developer are changeing the variables or any other environment variables/endpoints, we will get "CrashLoopBackOff" error.
+kubectl.awseksdev02 get pods -n dev-kafka | grep -v Running ==> To see the pods who are having the issues(like above)
+
+kubectl.awseksdev02 get deployments -A | grep -i 0/0 ==> to see deployments currents stage
+
+kubectl == To connect to the kubernets cluster. It will check automatically "~/.kube/config/".
+
+kubectl get nodes == This command pulls the data from ".kube/config", To know how many nodes in kubernets cluster.
+
+kubectl version --short == To know the client version.
+
+Kubectl config get-contexts ==> this command will shows the how many clusters are tagged to this dev server. Let connect to your jump server.
+
+Kubectl config current-context ==> it will tell we are in which cluster.
+
+kubectl config use-context arn:aws:eks:us-east-1:8756:cluster/awseksdev02 == to jump to required cluster.
+
+Kubectl get nodes ==> This command will shows the what are the nodes connected to the cluster after logged in by useing above command.
+
+kubectl describe pod <pod-name> -n <namespace> | grep -A 10 "Init Containers"  ==> is the command to check dyntrace is running.
+
+Git branch -a ==> it will shows the all the branches, now we are in the “feature/fre-dev” branch. We will encourage the developer to put the final code in “feature/pre-dev” branch.
+
+kubectl delete pod podname -n roboshop == To delete the pod without configaration file.
+
+kubectl get all -A ==> to see name space with pods
+
+kubectl logs podname -n roboshop == To see logs of a pod
+
+kubectl get rs -n roboshop == To see the replicas
+
+kubectl get deployments -n roboshop == To see the deploymentssets.
+
+kubectl delete deployment nginx-deployment -n roboshop ==> to see deployment
+
+kubectl delete ns roboshop == To delete the Namespace
+
+aws eks list-clusters --output table ==> login to jump machine and switch to cldadmdv account and run this command,it will list created EKS clusetr in the AWS
+
+YAML SYNTAX USAGE TO BUILD RESOURCES IN KUBERNETS
+==================================================
+apiVersion: == Every resource creates with the api version(v1).
+kind: == what kind of resource you are creating.first letter is capital(kind: Namespace)
+metadata: == metadata menas below information
+  name: == That resource name(note in kind what ever we are giving that name)
+  namespace: == whichname space are we creating pods
+  labels: == labels are key=value pairs to call other services, labels have limitations in length and specal characters.
+  annotatons: == annotations are used to call outside resource(aws secrats), annotations we there is no linit like variables, we can use special charecters as well.
+
+spec: == it means container specifications
+- name: == denotes the container name
+  image: == denotes which image we are useing
+  env:  == it denotes the environment variable for container. these are key=value pairs.
+           ex - name: DEMO_GREETING
+                value: "Hello from the environment"
+
+            Note: Like this if there are many environment variables we will go for "configMap". This configMap we can use for N(number) of pods.
+                  applications when it requires configaration information it will take from "configMap", configMap is nothing but a key=value pairs.
+   resources: here we will define how much cpu and mem we required for the container.
+              ex:     resources:
+                        requests: == Denotes the how much cpu and memory is required while application start
+                          cpu: "100m"
+                          memory: "68mi"
+                        limits: == Denotes the if application is having more load then what extend the resource limits will go.
+                          cpu: "280m"
+                          memory: "128mi"
+=================================================================================
+
+kubectl get namespaces == To see all namespaces in your kubernets
+
+kubectl delete namespace roboshop ==  To delte the namespace.
+
+kubectl create -f namespace.yaml == To create the the service whatever in "namespace.yaml" file.
+
+kubectl delete -f namespace.yaml == To delte the service what ever we menationed in "namespace.yaml" file.
+
+kubectl apply -f namespace.yaml == if resources not created it will create, if you assign any changes it will update.
+
+kubectl get pods -n roboshop == To see the pods under roboshop namespace.
+
+kubectl exec -it hello-pod -n roboshop bash == To login to pod
+
+kubectl exec -it multi-container -c almalinux -n roboshop bash == If our pod is having multiple containers to login specificall almalinux container.
+
+kubectl describe pod  multi-container -n roboshop == To know about the pod in detailed, like labels info, annotations info
+
+kubectl apply --dry-run=client -f 01-cluster-ip.yaml == To validate syntax of the your file. it wont create anything. it is just dry run. This indicates that your YAML file is correctly configured and ready to apply in your Kubernetes cluster.
+
+k9s installation in RHEL8 server
+===================================
+curl -LO https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz
+tar -xvzf k9s_Linux_amd64.tar.gz
+mv k9s /usr/local/bin/
+chmod +x /usr/local/bin/k9s
+k9s version
+k9s == To see graphical view for all pods, namespaces etc...
+
+:ns roboshop ==> to see pods in roboshop
+===========================================================================================
+
+ eksctl is the official command line from AWS, by useing "eksctl" we can configure production related clusters.
+
+ eksctl create cluster --config-file=eks.yaml == This is the command to create cluster
+
+
+===========================================================================================
+@#### configMap == advantages of the configmap is if the values are changeing, we are not disturbing the pod. mostly for application code change we will go for cicd (or) build process. if there is no application code change we maintain configaration outside of the application code. then we will save lot of time. so we dont maintain environmental variables in docker, we will maintain in kubernets layer as configMap.
+directly we can edit configMap and restart the configmap and restart the pods. automatically new values will fetch.the use of configMap is fetch the values dynamically. 
+
+ex:- 
+apiVersion: v1
+  kind: ConfigMap
+  metadata:
+  name: devops-config(IT means configMap name)
+
+data:  ==> it means what data we are giving, here we are giving key=pairs.
+  course: devops
+  trainer: "krishnareddy" (this information we needs to call to pods, where we required)
+
+kubectl apply -f 07.configMap.yaml -n roboshop ==  To create configMap
+
+kubectl get configmap -n roboshop == To see the configMap details.
+
+kubectl describe configmap confimapname -n roboshop == To see what is in configmap.
+
+=========== keep below info under the container to call configMap to any pod ===========
+envFrom:
+  - configMapRef:
+       name: devops-config
+===========================
+
+kubectl edit configmap devops-config -n roboshop == To edit the configmap in server it self.
+================================================================================================
+
+@###Secrets in Kubernets == secrets and configmap both are same. just name will change. it is like key=value pair.
+ Note: - in secrets we needs to give "base64" value.
+        To get base64 value. in gitbash shell execute below commands.
+        $ echo -n "admin"|base64
+          YWRtaW4=
+        $ echo -n "admin123"|base64
+          YWRtaW4xMjM=
+
+      To decode the above passwords use below commands.
+        $ echo -n YWRtaW4xMjM= | base64 --decode
+          admin123
+
+ex: 
+apiVersion: v1
+kind: Secret
+metadata: 
+  name: devops-secret(It means secret name)
+
+type: Opaque( it means we cont see that)
+data:
+  username: YWRtaW4=
+  password: YWRtaW4xMjM=
+
+kubectl get secrets -n roboshop == To see the secrets in roboshop name space.
+=========== keep below info under the container to call configMap to any pod ==============
+    envFrom:
+      - secretRef:
+          name: devops-secret
+===========================================================================================
+
+@###Services: Pod is dynamic(that means this minit it will run next minit pod will terminate), Pod ip address are aphemeral they are not perminent. to achive pod to pod communication in kubernets and to expose the pod to outside world pod must attach to the service.
+
+1) we are useing pods but we are not exposing outside world, if you want to expose pods to outside other applications or outside world, we must use services.
+
+2) Load balancing
+
+3) service mesh
+
+Three types of services
+=========================
+clusterIP -- It is purely internal to kubernets.
+
+NodePort -- Node port you can expose your pod to outside world
+
+Load balancer -- we can expse to outside world.use in AWS,AZURE,GCS.
+
+IMP Notes
+==========
+1) first we have pod.
+2) we need to attach this pod to service. here label will help to select particular pod to respective service. labels should be unique. below once shows the labels uniqueness. so our pod labels should be unique.
+  
+  project: roboshop
+  component: catalogue
+  tier: tier-2
+
+
+1) ClusterIp: cluster ip for the internal purpus.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+
+spec:
+         == Here if we are not giving anything here that means "cluster-ip"
+  selector: (it means  once pod is created this service is going to attach with witch pod, that is nothing but selector, How it select? that is depends on the labels(in Pod), what are the labels we gave in pod, the same labels we needs to give in service also)
+    app: nginx
+    demo: krishna (in pod syntax what information we have give the same info 
+          we needs to give, then only pod will select the respective service)
+
+  ports:
+    protocal: TCP
+    port: 80 (service port) 
+    targetPort: 80 (container Port, that means people hit service port, port number-80, that will pass the request to container port: 80) 
+
+kubectl get services == To displays the all services in the kubernets.  
+
+2) Nodeport:- if you want to expose your pod to outside world.for nodeport we will get cluster ip. so clusterip is subset of nodeport.
+
+ =just add below lines to above synatx to becode nodePort====
+ spec:
+  type: NodePort
+  selector:
+=====================================
+
+3) Load balancer:- Load balancer will use for cloud providers. for users directly we are not giving the ports ip address before that we are keeping loadbalancers. providing cluster-ip address to user is not a secure thing, so we keep loadbalancer. if user hits the loadbalncer, the request from the loadbalancer will go to any one of the nodeport via port number 31197 for the server, the nodeport request the cluster-ip, that cluster -ip send request to pod.
+
+=just add below lines to above synatx to become Load Balancer====
+spec:
+  type: LoadBalancer            
+  selector:
+===========================================================================================
+REPLICASET:- replicaset means same of pods. one pod is not enough to bare the load.based on the requests the pods needs to be scale. Pod is subset of replica set. first replica set will create. it will check it self for what we are creating replicas
+ replicaset will refers to the labels, then witch pod is having the same labels for that pod. it will create replicas.
+  matchlabels:
+    app: nginx
+    tier: frientend
+
+ex:
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+  namespace: roboshop
+  labels:
+    app: nginx
+    tier: frontend
+
+spec:
+  replicas: 3 #it means three replicas we want
+  selector:  # replica-set labels
+    matchLabels:
+      app: nginx
+      tier: frontend
+  
+  template:   #it is pod defination, it dont have apiVersion: and kind: , the reason pod is subset of the replicaset.
+    metadata:
+      labels:
+        app: nginx
+        tier: frontend
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+Generally replicaset is for the to create number of replicas for the pod. we are useing application version(ex: cataloghu:1.0.0) is running, in next release we want to run (ex: cataloghu:1.2.0) for that needs to go re-release. in tis case we needs delete the existing one(kubectl delete -f applicationname.yaml) and recreate with the latest code(kubectl apply -f applicationname.yaml).
+
+note: applicationname.yaml file should have upto date code.
+====================================================================================================================================================
+DEPLOYMENTSET:- ReplicaSet is manually used to maintain number of replicas, but it con't identify the changes in the application and con't update.
+ "To identify the changes in the application and to update the version we have deployment".
+
+imp:services(clusterIP < NodePort < LoadBalancer)
+     sets(Pod < replicaset < deploymentset)
+
+  ex: syntax same as replicaset just replace "kind: Deployment"
+
+  so in deploymentset application is updated with the single command "kubectl apply -f filename.yaml"
+
+  note: applicationname.yaml file should have upto date code.
+
+  kubectl delete deployment nginx-deployment -n roboshop ==> to see deployment
+
+  kubectl get  deployment -n roboshop == To see the deployments
+
+  How ideployment is working?
+     old replicaset is creating the new replicaset. once pod in new replica set will up then pod in old replicaset will down, means at a time 3 pods will run because we set responsibulity is to replicaset is at any sitvation it has to run 3-replicas. like this new pods will create in new replicaset. finally replicaset is going to deleted. then new replicaset is going to attach to deploymentset. This process is called rooling update. This is zero down time deployment. but few seconds our application old version and new version both are running.
+===========================================================================================
+=====================================================================================================================================================================================
+ROBOSHOP PROJECT:- for any project below two point are important.
+
+1) image should exist (or) build the image ==> as per the application requirement build the image.
+2) configaring image through manifest files ==> It means we are informing to kubernets how to run that image by manifest files.
+          
+          Here in kubernets first we build the image, that image we are pushing to dockerhub, after that we create kubernetes manifest files and informs how kubernets will run that image.
+
+Q) who pull the images?
+A) Kubernets cluster is pulling the images.
+
+Below errors can expect by above two steps
+------------------------------------------
+image is there or not.
+image build properly or not.
+what are the image versions.
+does image pushed to repositary(Nexus or dockerhub or ECS) or not.
+kubernets is having image pull access or not.
+once image pulled, then configaration changes(step-2) correct or not.
+
+https://github.com/daws-76s/roboshop-documentation ==> for the project documentation
+
+cat ~/.docker/config.json ==> to check which account is accessing latestly to the docker hub. here credentials are in base64.
+
+docker info == To dispaly all information about docker including above authentication info.
+======================
+image pull policy: 
+imagePullpolicy: Always ==> it means kubentes cluster everytime pulls the latest image from repository(ECR, dockerhub, etc), so always keep "Always" that is recamanded.
+
+imagePullpolicy: ifNotPresent ==> Kubernetes pulls the image only if it is not already present on the node.
+
+imagePullpolicy: Never ==> Kubernetes will never attempt to pull the image. It uses only the local copy.
+==========================================================================================
+
+To avoid multiple times giving "-n namespace", we can try below things.
+
+git clone https://github.com/ahmetb/kubectx /opt/kubectx
+ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+kubens roboshop ==> To move to roboshop namespace
+kubectl get pods == for all commands we can execute under same namespace.
+
+==========================================================================================
+
+mongodb port no: 27017
+
+[root@lenlk8smastert01 debug]# kubectl get pods -o wide
+NAME                         READY   STATUS    RESTARTS   AGE    IP               NODE               NOMINATED NODE   READINESS GATES
+catalogue-78cfc54744-r5l7d   1/1     Running   0          5h6m   192.168.58.241   lenlk8sworkert01   <none>           <none>
+debug                        1/1     Running   0          11m    192.168.58.232   lenlk8sworkert01   <none>           <none>
+mongodb-d8d59d9db-cv9m2      1/1     Running   0          20h    192.168.58.231   lenlk8sworkert01   <none>           <none>
+[root@lenlk8smastert01 debug]#
+
+as per this o/p catalogue is in one node and mongodb is another node etc.
+
+root@mongodb-d8d59d9db-cv9m2:/# netstat - lntp # after login the pods executing this command, here mongodb  is running on port No: 27017
+Active Internet connections (w/o servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 mongodb-d8d59d9db:27017 192-168-58-241.ca:52560 ESTABLISHED
+Active UNIX domain sockets (w/o servers)
+Proto RefCnt Flags       Type       State         I-Node   Path
+root@mongodb-d8d59d9db-cv9m2:/#
+ 
+
+mysql works == 3306 port number
+
+mysql -u shipping -pRoboShop@1 == After login to mysql pod, again login to mysql server
+mysql> show databases; == It will displays the databases
+mysql> use cities;
+Database changed
+mysql> show tables;
+==============================================================================================
+
+           
