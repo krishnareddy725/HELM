@@ -357,4 +357,51 @@ Database changed
 mysql> show tables;
 ==============================================================================================
 
-           
+Q) What is statefull applications?
+A) we have data in some applications those are called statefull applications, where the data is crucial..(or) applications where the storage is mandatary.
+
+ below are examples.
+
+    MONGODB --> when ever we are creating some users that stores in mongodb and redis.
+    RABBIT MQ--> Whenever we are creating some order that will store in rabbitmq.
+    MYSQL --> shipping related information will come from mysql.
+    MONGODB--> Cataloghu where the product information will shared.
+
+Q) What is stateless applications?
+A) Applications where the storage is not mandatary, they are called stateless applications.
+ ex:- catalog, cart, user and shipping etc.
+
+Q) In kubernets server where the data is store?
+A) The data is getting stored in EC2 worker nodes.
+
+Q) we clearly pods are ephemeral(keep on changeing), so in kubernets "ec2 nodes are perminent or temparary?
+A) Nodes are ephemeral, so if you start storing the crusial data in "ec2-worker' nodes, those nodes tomorrow may deleted. then we will
+  loose data again. so you should not take statefull applications storing the data in worker nodes. in that case we should have some
+  external storage. we should mount the 'storage(EBS/EFS)' to kubernets cluster. 
+
+  The storage can be EBS/EFS.
+
+  EBS --> is like HARD disk.
+  EFS --> It is like NFS storage.
+
+STORE THE DATA IN WORKER NODES (OR) KUBERNETS VOLUMES:
+-----------------------------------------------------
+1. EmptyDir
+2. HostPath    --> these two things will use to store the data in worker node or internal volumes. this data is not perminent but we 
+   have some use cases.
+
+Q) What is EmptyDir in kubernets?
+A) In sidecar concept we have two containers in side the pod. pod characterstics are multiple containers inside the pod share same 
+    network and storage. one container is serving for the application and another container shifting the logs to ELK. 
+
+    EmptyDir: emptyDir is used for sidecar pattern, we mount volume to the Sidecar and main container useing EmptyDir. 
+
+Q) Pods are aphermal so the pod may terminate do we have logs avilable?
+A) we dont have logs if the pods are temparary. we will shift the logs to elastic search, but who will ship?
+    Main pod responsebulity is sending response to requests, then we will keep sidecar, the purpus of the sidecar is it will access the
+    storage and contineously shift logs to the ELK. That is usage of the sidecar.
+ 
+ 
+
+
+ 
