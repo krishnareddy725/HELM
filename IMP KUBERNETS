@@ -539,7 +539,26 @@ other wise if the pod created in another "us-east-1c" volume not mount. we have 
 
 kubectl get pods -o wide ==> To see which worker node in which avilabulity zone.
 
+select server which is in 'us-east-1b' and check private "IPV4" address is 192.168.43.218
 
+kubectl label nodes ip-192-168--43-218.ec2.internal zone=1b
+kubectl label nodes ip-192-168-53-69.ec2.internal zone=1b
+
+in kubernets manifest file we needs to update below info.
+
+nodeselector:
+  zone: 1b   --> Give this info in above pod defination
+
+while POD is creating it will check the node selector zone "1b" which node is labeled as "1b" in that server only it will create. This is how you can control the pods in the worker node.
+
+Node selector is the basic thing to go the pod to particular node. if you dont want to go we have few NODE affinity and Node anti offinity.
+
+VOLUME STATE
+------------
+AWS --> EC2 instance --> Volumes(Here we can see volumes)
+
+if volume state is "Avilable" this is not attached.
+if volume state is "in-use" that means that volume is attached and used.
 
 
 
