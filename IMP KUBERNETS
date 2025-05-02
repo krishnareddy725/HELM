@@ -213,10 +213,12 @@ kubectl get services == To displays the all services in the kubernets.
 
 2) Nodeport:- if you want to expose your pod to outside world.for nodeport we will get cluster ip. so clusterip is subset of nodeport.
 
- =just add below lines to above synatx to becode nodePort====
+ =just add below lines to above synatx to become nodePort====
  spec:
   type: NodePort
   selector:
+
+  nodeport we dont use.if you want completely external go for go for load balancer, if you want to internal go for cluster-ip. if you go for loadbalancer nodeport will come auomatically. nodeport means to expose the ipaddress of worker node. it is not good to use nodeport that is not correct. nodeport is internal concept in loadbalancer, with out node port loadbalancer will nort work.
 =====================================
 
 3) Load balancer:- Load balancer will use for cloud providers. for users directly we are not giving the ports ip address before that we are keeping loadbalancers. providing cluster-ip address to user is not a secure thing, so we keep loadbalancer. if user hits the loadbalncer, the request from the loadbalancer will go to any one of the nodeport via port number 31197 for the server, the nodeport request the cluster-ip, that cluster -ip send request to pod.
@@ -282,7 +284,7 @@ imp:services(clusterIP < NodePort < LoadBalancer)
 
   kubectl get  deployment -n roboshop == To see the deployments
 
-  How ideployment is working?
+  How deployment is working?
      old replicaset is creating the new replicaset. once pod in new replica set will up then pod in old replicaset will down, means at a time 3 pods will run because we set responsibulity is to replicaset is at any sitvation it has to run 3-replicas. like this new pods will create in new replicaset. finally replicaset is going to deleted. then new replicaset is going to attach to deploymentset. This process is called rooling update. This is zero down time deployment. but few seconds our application old version and new version both are running.
 ===========================================================================================
 =====================================================================================================================================================================================
@@ -395,6 +397,9 @@ A) In sidecar concept we have two containers in side the pod. pod characterstics
     network and storage. one container is serving for the application and another container shifting the logs to ELK. 
 
     EmptyDir: emptyDir is used for sidecar pattern, we mount volume to the Sidecar and main container useing EmptyDir.as the name says this emptyDir volume is intially empty. All the containers in pod can read and write the same files in the emptyDir volume. when you create the emptyDir it will create the volume inside the node and it will give access to pod.
+
+    EmptyDir is used in sidecar pattern to access the main container logs to ship it to the external logging system like elk.
+
      then sidecar get access to storage, so sidecar project have filebeat. filebeat is the public image for the for elastic search, we put filebeat in sidecar, this filebeat access the logs and ship. there is some configaration for the filebeat.
 
     i/p and 0/p --> input is for the prod logs to success, o/p is nothing but where to shift the logs.
@@ -407,6 +412,125 @@ A) we dont have logs if the pods are temparary. we will shift the logs to elasti
     storage and contineously shift logs to the ELK. That is usage of the sidecar.
  
  
+Q) What is HOSTPATH?
+A) In Ec2 /var/log/directory we have lot of logs, like pod logs these logs also very important to understand what is happening underline worker node. like to know worker node is connected to kubernets master? is anyone hacking the underlying nodes, how is 
+monitaring for the underlying nodes, How is the cpu utilization these all things are important, so we needs to ship all those worker 
+node logs to external system. How many worker nodes we have those many logs we needs to ship.
+
+  Giving host path to specific directory, it is purely adminstrative task and you should give only read-only access. if you give write access pod can do anything in the host. Hostpath is dangerous but it can had a valid reason to ship the underline worker node logs to
+  external system, we can configure host path with some precations like configaring a particular directory and as well as only read-only access. HERE DAEMONSET PLAYS wider role.
+
+Q) How to write node-port is read-only?
+A) we will declare in manifest file under volume mount.
+
+    volumeMounts:
+    - mountPath: /foo
+      name: example-volume
+      readOnly: True --> here we should give readly
+
+Q) What is DaemonSet?
+A) DaemonSet will make sure a pods runs in each and every worker node. if you delete one worker node that will gone automaticaly. if you add new node to the cluster a daemonset will automatically create the in that worker node. FLUENTD(From elk) will be deployed as a daemonset that can access the underlaying worker node logs and send them to elk. FLUENTED contains access to the /var/log directoryand shifts the logs to external system.
+              How many worker nodes are there those many pods will created by daemonset without specifying the number. if you delete daeemonset all pods in worker node will be deleted.
+
+Q) Uasges of DaemonSet?
+A) 1) To configure storage to every node(Running a cluster storage daemon on every node)
+
+   2) To push logs from every worker node( running a log collection daemon on every node)
+
+   3) To Set monitaring to every node (Running a node monitaring daemon on every node)
+
+ekctl delete cluster --config-file=eks.yaml --> To delete the cluster after the practice.
 
 
- 
+ Q) In one namespace we are deploying the all pods. in real time different namespaces we have then how?
+    (or) WEB is in one namespace and APP is in another namespace, database is in different namespaces, then internally how they communicate?
+
+  A) There is a communication between namespace to namespace. then service change bit different.
+     with in namespace( web, app, Db) if we give service name that will connect. if there are different name spaces then.
+
+     syntax: different namespace.svc.cluster.local
+=============================================================================
+
+EXTERNAL VOLUMES
+----------------
+
+external volumes like HARD DISK and CLOUD DRIVERS.
+
+HARD DISK--> Near to computer as near as possible.
+
+CLOUD DRIVERS--> Cloud drivers are network drivers.. like NFS..
+
+if you store the data inside kubernets cluster or worker nodes that is defnetly not reliable, it may loose the data anytime. so we desided keep the storage outside.
+
+IMP NOTE: "This Storage we needs to connect with cluster"
+
+Generally to manage storage we required storage team, in cloud there is no big responsibulity. heavy lifting is to handle by AWS(or) cloud platforms. still kubernets adminstarter should know the storage concepts.
+
+HERE we manage the storage by "STATIC PROVISIONING AND DYNAMIC PROVISIONING"
+
+STATIC PROVISIONING
+-------------------
+
+Static provisioning means we needs to create the storage in onpramise. it is tuff to add disks and sync the data, but in cloud that is simple.
+
+In static provisioning we have two types of volumes. they are EBS and EFS.
+
+EBS -- EBS is nothing but Elastic block storagelike HARD DISK.
+
+EFS -- EFS is nothing but ELASTIC FILE SYSTEM, it is like in NFS.
+
+EBS(ELASTIC BLOCK STORAGE)
+--------------------------
+1) first we needs to create the storage, either storage admin or k8 admin will create the storage. our goal is we needs to store the data in outside, that outside is EBS.
+
+Creating the EBS VOLUME
+AWS--> ELASTIC BLOCK STORAGE --> VOLMES --> CREATE VOLUMES
+
+VOLUME SETTINGS
+volume type(General purpose SSD(gp3))
+size(GIB)(100)
+IOPS(3000)
+avilable zone(us-east-1a)
+snapshot ID - Optional( Dont create the volume from a snapshot)
+                      create volume(enter)
+
+CONDITION:- our servers are in which avilabulity zone, that avilabulity zone only we needs to creates the volumes.
+
+Q) Can we create the volume in "us-east-1c"?
+
+A) Availabulity zone is like datacenter where all servers to be present. so where the server is avilable there only we needs to create the EBS volume.
+
+NOTE-1:- if server is avilable in "US-EAST-1B" and i created volume in "US-EAST-1C" that will not work in EBS.
+
+NOTE-2:- We needs to make this EBS volume avilable for the "k8-cluster", for this we should install the "aws-ebs-csi" drivers should be installed( like to put pendrive or keyboard to laptop to detect it requires the drivers). for kubernets cluster external storages(EBS?EFS) to attach we should install the drivers.
+
+Server:- kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.28" -- installing the driver.
+
+NOTE-3:- EC2 instance and EBS both are different resources. so a proper role shouuld be attached to 'EC2' instance to access 'EBS'.
+          To create EBS volume, To mount EBS volume and describe EBS volume , delete EBS volume..all these roles should have to EC2 instance. the reason is that they are different rosources.
+
+AWS--> EC2 INSTANCE --> Security --> IAM Role(eksctl-roboshop-node group or any role) this role is attached to ec2 instance, this role all ready have some permissions by default but also add few more permissions.
+
+Permissions --> Add permissions --> attach policy
+other permissions policy(ec2 full access{search this})--> select Amazon EC2 full access( select this after this instance can create and delete volume everything)
+
+ADD PERMISSIONS(Enter)
+
+KUBERNETS VOLUME OBJECTS
+------------------------
+we have few volume related objects, how we have Pod,ConfigMap,Secrets, resource like for volume also we have few resource.
+
+Kubernets is creating the persistence volume, this persistence volume will repracent the storage.
+
+PERSISTENCE VOLUME(PV) --> persistence volume will repracent the storage, why it needs to repracent?
+A) AS a kubernets adminstrater we dont have access to the EBS storage. Persistence volume work as a wrapper. if we do operations on the persistance volume kubernets in background do operations on the storage. So pv repracents the physical volume external to kubernets.
+
+PERSISTENCE VOLUME CLAIM(PVC) --> claim means we needs to request something. so pods should request volume through PVC(Persistance volume claim). PVC is not like a physical repracentaion it is just like a request to the PV.
+            To use EBS Volumes first we should create the 'PV', it is exactly equal to the EBS and then we have to claim pvc. pvc is like a claim.
+
+IMP NOTE:- POD connect to the pvc and pvc connect to the PV.
+
+
+
+
+
