@@ -530,6 +530,19 @@ PERSISTENCE VOLUME CLAIM(PVC) --> claim means we needs to request something. so 
 
 IMP NOTE:- POD connect to the pvc and pvc connect to the PV.
 
+Q) When you apply where your pod is getting created?
+A) Any Worker node.
+
+Q) Is there any chance this POD may goes to 'us-east-1c'zone worker node?
+A) yes there are chance this pod may goes to 'us-east-1c' zone. remaining probabulity it may goes to "us-east-1b" so we have to       control  this thing, it will control by 'kubecontroler'component in kubernets. which worker node the pod goes to mount that volume.
+other wise if the pod created in another "us-east-1c" volume not mount. we have something called nodeselectors. to assign pod to node we needs to label the nodes.
+
+kubectl get pods -o wide ==> To see which worker node in which avilabulity zone.
+
+
+
+
+
 
 
 
