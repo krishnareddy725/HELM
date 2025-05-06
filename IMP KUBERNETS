@@ -843,6 +843,27 @@ A) once we go for new release of the applications, that application is suddenly 
 helm rollback nginx --> automatically it went one version back.
 kubectl get pods --> all pods are in running state, roll back done.
 
+helm history nginx
+o/p
+1 install completed
+2 upgrade completed
+3 roolback to 1 --> means rool back to first version.
+
+After one year if you see 100 releases, if you want to go which release that relase we will go.
+
+helm rollback nginx 2 --> it means going to 2 release.
+
+kubectl get pods --> to check the pods running status.
+
+helm show values --> it will shows the 'values.yaml' file.
+
+HELM works very effective way in cicd pipeline.
+
+helm upgrade nginx --set deployment.replicas=10 --> replicas will increase to 10
+
+kubectl get pods --> we will see 10 pods here.
+=====================================================================================================================================
+
 
 
 
