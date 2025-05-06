@@ -471,7 +471,7 @@ HERE we manage the storage by "STATIC PROVISIONING AND DYNAMIC PROVISIONING"
 STATIC PROVISIONING
 -------------------
 
-Static provisioning means we needs to create the storage in onpramise. it is tuff to add disks and sync the data, but in cloud that is simple.
+Static provisioning means we needs to create the storage manually. it is tuff to add disks and sync the data, but in cloud that is simple.
 
 In static provisioning we have two types of volumes. they are EBS and EFS.
 
@@ -558,7 +558,308 @@ VOLUME STATE
 AWS --> EC2 instance --> Volumes(Here we can see volumes)
 
 if volume state is "Avilable" this is not attached.
-if volume state is "in-use" that means that volume is attached and used.
+if volume state is "in-use" that means that volume is successfully attached to pod and used.
+===================================================================================================
+
+DYNAMIC PROVISIONING
+--------------------
+DYNAMIC provisioning means volume should be created automatically. it means kubernets should be created volume automatically.Like statics provisioning we required "pv" and "PVC". those objects created by the "storage class" dynamically baesed on the request.
+
+if we created volume manually we needs to create the 'PV' manually. when the volume is automatically created by the "storage class", then "PV" also automatically created by the storage class.
+
+NOTE-2:- We needs to make this EBS volume avilable for the "k8-cluster", for this we should install the "aws-ebs-csi" drivers should be installed( like to put pendrive or keyboard to laptop to detect it requires the drivers). for kubernets cluster external storages(EBS?EFS) to attach we should install the drivers.
+
+Server:- kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.28" -- installing the driver.
+
+NOTE-3:- EC2 instance and EBS both are different resources. so a proper role shouuld be attached to 'EC2' instance to access 'EBS'.
+          To create EBS volume, To mount EBS volume and describe EBS volume , delete EBS volume..all these roles should have to EC2 instance. the reason is that they are different rosources.
+================================================================================================
+
+kubectl api-resource --> it will display resources in kubernets. there are two types of resource.
+
+1) VPC based resource
+2) Non-VPC based resource
+
+TIP:- If any service is having the network that is called the vpc based network.
+
+ex:- EC2 instance and route-53 all are vpc based resource.
+
+if there is no networking that resource is called non-vpc based network.
+
+like this in kubernets there are two types of resource
+
+1) Cluster name space
+
+2) cluster non-name space
+
+kubectl api-resource (namespaced {true})--> to check cluster name space or cluster non-name space.
+
+Q) POd is namespace resource (or) Non namespace resource?
+
+A) if resource are created with in the namespace those resource are called name-space resource.
+
+  kubectl api-resource (namespaced {true}) --> that means those resource are called namespace resource.
+
+  in cluster level also we will create the resource(storage) those resource are called cluster non-name space resource. this storage class is created by the adminstarter.
+
+  EBS will have one storage class clusterwise, for the entire kubernets cluster adminstarater strater creates the storage class.
+
+  kubectl get sc (name (ebs-sc)) --is storage class created by the adminstarter and informed to all engineers like we have created the for the dynamic provisioning. then projects can create the volume dynamically according to the requirement.
+
+  persistance namespace(PV) is also not name space resource.
+  persistance namespace claim(PVC) is name space resource.
+
+kubectl get pv(observe the o/p here)
+kubectl get pvc (Here observe the o/p and volume) ==here we came to know which pv(persistent volume) it is created.
+
+Q) What is the reclaim policy(delete) from above commands o/p?
+A) RECLAIM POLICY--Delete means if we delete the pod automatically underline volume also deleted.
+   RECLAIM Policy-- Retain means if we delete the pod then volume is avilable.
+                 if you want to change the RECLAIM POLICY from DELTE to RETAIN we have to update in storag class.
+
+===============================================================================================================
+
+EFS (Elastic file system) -- EFS just like a NFS/google drive. it is somewhere in networks.we can work on the storage based on NFS.
+
+AWS -- search for (EFS) --> Create file system.
+
+Name-optional(efs-static)
+virtual private clour(vpc-odoee47e) -- here we have doubt which vpc we needs to give so selectserver -- details --vpcid(copy this) and click on your vpc and compare this.
+
+create(enter) -- click here to create the EFS.
+
+once created click on (name {efs-statisticks}) --> Networks (here we see security group, it is vpc default security group{take note})
+
+security group (search bar {paste aove security group}) -- here we got o/p, that security group is connected to security group.
+
+To add this EFS TO NFS, ee nfs ki connect ina security group lo
+
+vpc --> security groups --> sg00091(EFS connected sg) --> EDIT inbound rules --> add rule (NFS TCP 2049 custom sge8470) here we nneds to allow security group which were assigned instance.
+
+select EC2 instance --> security --> security groups(sgeg8470) -- here the meaning is port 2049 is opening that to connect to our instance 
+
+SAVE RULES( TO save all rules)
+
+IMP NOTE: There is no size limit for the EFS file system. it will keep extending based on utilization.
+
+we can store upto 47.9 tb file. this is based on the NFSv4.0 (network file share), how much space we use that much cost we needs to pay.
+
+3) INSTALL EFS CSIDRIVERS
+-------------------------
+SERVER
+------
+cd
+kubectl kustomize "https://github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.7" > private-ecr-driver.yaml
+kuectl apply -f private-ecr-driver.yaml --> drivers will install
+
+4) CREATE PV
+------------
+google:- https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/specs/pv.yaml --> here we will see reference code to create the PV.
+
+ EFS STATIC
+  ----------
+  1) CREATE EFS FILE SYSTEM
+  2) EDIT THE SECURITY GROUP SO THAT IT WILL ALLOW PORT 2049 FROM WORKER NODE
+  3) WE SHOULD HAVE DRIVERS INSTALLED(SEE ABOVE)
+  4) GIVE EC2 ROLES EFS FULL ACCESS
+  5) CREATE PV
+  6) CREATE PVC
+  7) USE PVC IN THE POD
+================================================================
+EFS DYNAMIC
+-----------
+TO-do efs dynamic we should have storage class
+google:- https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml -- reference code for EFS Dynamic.
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-92107410
+  directoryPerms: "700"
+  gidRangeStart: "1000" # optional
+  gidRangeEnd: "2000" # optional
+  basePath: "/roboshop" # optional --> it is created in AWS for access point. like this if amazon and flipkart came in a cluster, like this we needs to create another another storage class for that project. like projectwise we will create the storage class. After this we can inform your project engineers we have roboshop storage class created you can create volumes.
+
+  IMP NOTE:- HERE dynamic EFS means not EFS storage created, that means dynamic points which are in EFS will create dynamically.
+
+  AWS --> amazon efs --> file systems --> select one file system(used for this project)--> Access points(Not showing any access points)
+
+  TRoubleshooting
+  -----------------
+  check PV created, because PV is physical repracent
+
+  kubectl get pv(efs-static--> Pv is created)
+
+  kubectl get pods --> check pods are created 
+
+  kubectl describe pod podname( check events here)
+
+  kubectl get pvc( status is pending ) --> issue is here
+
+  kubectl describe pvc efs-dynamics --> Access is denied please ensure you have right AWS permissions.
+
+  AWS -- select the ec2 server--> security --> IAM role(click here) it will route you to
+
+  IAM --> roles --> eksctl --> roboshop -node group --> Permissions --> add permissions --> attach policy --> SELECT (Amazon elastic file system full access)
+
+  ADD permissions(done)
+
+  now delete and recreate the deployment
+
+  AWS --> amazon efs --> file systems --> select one file system(used for this project)--> Access points ( here we can see access point id and path ) this access point is only for the roboshop project, like this many projects we can see access point created.
+
+=======================================================================================================================================
+
+HELM CHARTS
+-----------
+HELM charts are used for the TWO purpose.
+
+1. Tempalates the kubernets manifest file/ To parameterise the kubernets manifest file.
+2. Package manager for kubernets.
+
+1) Tempalates the kubernets manifest
+------------------------------------
+There are two steps for kubernets.
+
+1) Build the image / Pull the image if it is public.
+2) Configure the image through manifest file to run pod.
+
+Q) Is there any frequant changes in manifest file?
+
+AQ) ONLY FEW changes, what are those few changes?
+
+A) May be repelica count, IMAGE version is keep on changeing. Today if the image version v1 release, tomorrow v2 release, later two weeks v3 release etc...... if you take service nothing will change. take deployment only image will change and annotations and replicas will change.
+
+if you take ConfigMap..... Below things are hardly changeing.
+
+Data:
+  REDIS_HOST: "redis"
+  CATALOGHU_HOST: "cataloghu"
+  CATALOGHU_PORT: "8080"
+
+Once kubernets manifest files ready changes are very rare. Those changes we needs to perform automatics, no needs to edit the manifest files, automatically we needs to perform.
+
+if there is modification in main developemt or main configration file if we do changes by mistake we may edit in other lines, so in that case we convert them as a variable and pass that variable from outside.
+
+what this helm do keep all constarnt values separate and changeing values separate ga maintain chastundhi. That is helms one of the advantage.
+
+HELM INSTALLATION
+-----------------
+server:-
+$ kubectl get pods --> to see the pods
+$ curl -fsSL -o get-helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 --> To install helm
+$chmod 700 get-helm.sh
+$./get-helm.sh
+$ helm version {o/p version.BuildInfo{version: "v3.14.2"}}
+
+HELM CHART STRUCTURE
+--------------------
+HELM chart structure we should discuss.
+
+chart.yaml --> it is first and mandatary file, in this file which one is required which are not required we will check.
+apiVersion: v1 #required
+name: nginx # writing helm chart for nginx, then name is nginx(required)
+version: 0.0.1 # Your helm chart version
+descritption: This is customized helm chart for nginx
+appVersion: 1.0.0 #app version and chart version both are different.
+
+TEMPLATES --> templates folder is mandatary, in this templates folder we are going to keep what are the kubernets resource use we are going to keep here. in this folder we are going to keep "deployment.yaml" and "service.yaml" files
+
+IMP: chart.yaml templates(deployment.yaml, service.yaml) --> These two are mandatary files.
+
+clone github repo to the server then
+$cd helm-charts
+$ls(chart.yaml, Templates) --> these two are mandatary files.
+$helm install nginx(any name we can give) . --> here HELM command is checking 'chart.yaml' in current folder, just like docker build.
+$helm list --> it will shows the deployed one. which one deploy?
+
+A) what helm do by default it will search for 'templates' folder in this folder what are the manifest files are there in which in background automatically "kubectl apply" ani istundhi.
+
+HERE HELM usage is ....few values will change(repelicas, annotations and image versions).. these change values we needs to maintain "values.yaml" file in "helm" root folder.
+
+values.yaml file -- here helm goes and fetch required values.
+
+we will call "values.yaml" file values to "deployment.yaml" file like below
+
+replicas:{{.values.deployment.replicas}}
+
+ex: image version
+
+deployment.yaml
+image: "nginx:{{.values.deployment.imageVersion}}"
+
+                 .values means it is searching "values.yaml' and taking the deployment image version.
+
+CONSIDER:- we are upgrding the latest version. in that case we are not touching the manifest files and we update info in "values.yaml" file, then go for deployment.
+
+server; pull the git repo latest data
+$helm upgrade nginx . --> is use for upgrade, while we are going for upgarde best practice is 'chart.yaml(version:0.0.2 #this is chart version) version change chayavachu.
+
+if we are going for release chart version and application both needs to change.
+
+$kubectl get pods --> here application is upgrade automatically. age is 15 sec...etc..
+                   so helm is used to parametarise the kubernets manifest files, here the main files are "chart.yaml" "values.yaml" and templates(service.yaml, deployment.yaml) directory..
+
+2) HELM IS USED PACKAGE MANAGER FOR KUBERNETS:
+----------------------------------------------
+Q) VM's are getting packages from servers and yum is installing it, what about the kubernets?
+
+A)if it comes to kubernets either build the image or pull the image.
+
+HELM advantages
+
+1) Image is already in public.
+2) helm have some public repos to configure the image through manifest files.
+ 
+ For EBS we took EBS drivers in public and install by useing below command in server level.
+
+kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.28" --> this command takes the yaml files from internet and install it.
+
+These yaml files we can install it by helm, to do follow below process.
+
+1) ADD helm repo(in this repo we have kubernets resource files)
+helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+
+helm repo list --> we will get all repos
+
+helm repo update --> latest ga eamina untey idhi thesukoni vastundhi
+
+helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver --namespace kube-system --create-namespace --> to install the drivers
+
+helm list -n kube-system --> it will diplays the installed drivers
+
+helm uninstall aws-ebs-csi-driver -n kube-system --> to uninstall the drivers.
+
+helm history nginx--> to see how many times we install for the specific application. here we see versions and do rool backs easily?
+
+Q) when we go for rool backs?
+
+A) once we go for new release of the applications, that application is suddenly failed then we will go for roll back. how fast we are doing rool back that is important. with in minute if you do rool back you do not loose the business.
+
+helm rollback nginx --> automatically it went one version back.
+kubectl get pods --> all pods are in running state, roll back done.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
+
+
+
 
 
 
